@@ -3,8 +3,8 @@
 - this repo is for the development of flows for the [LAUDS Gateway software stack](https://github.com/dyne/lauds-iot-backend). 
 - the flows include
   - data integration of several API (e.g. PRUSA-LINK Rest-API, Shelly-Plug MQTT, Emon-Pi MQTT, OLOS Websocket)
-  - data processing
-  - data forwarding
+  - data processing (e.g. energy per job, for Prusa Printers)
+  - data forwarding (e.g. to InfluxDB)
 
  # Funding
 
