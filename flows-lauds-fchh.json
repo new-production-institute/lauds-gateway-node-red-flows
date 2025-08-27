@@ -3,7 +3,7 @@
         "id": "f0ce8419681cf781",
         "type": "tab",
         "label": "Prusa-mk4-shelly",
-        "disabled": false,
+        "disabled": true,
         "info": "",
         "env": []
     },
@@ -43,6 +43,14 @@
         "type": "tab",
         "label": "OLSK - Websocket",
         "disabled": true,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "f0d7e410e85e24c9",
+        "type": "tab",
+        "label": "olos",
+        "disabled": false,
         "info": "",
         "env": []
     },
@@ -933,7 +941,7 @@
     {
         "id": "af889725daaa1ec0",
         "type": "mqtt-broker",
-        "name": "Shelly 04",
+        "name": "Shelly ",
         "broker": "192.168.188.199",
         "port": "1883",
         "clientid": "",
@@ -1003,6 +1011,74 @@
         "type": "mqtt-broker",
         "name": "SPPS-02",
         "broker": "192.168.188.32",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "0525d302e5e4421b",
+        "type": "websocket-listener",
+        "path": "ws://192.168.188.111:8887",
+        "wholemsg": "false"
+    },
+    {
+        "id": "e47098cd0e114fd6",
+        "type": "mqtt-broker",
+        "name": "SPPS-06",
+        "broker": "192.168.188.199",
+        "port": "188",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "83e8a627192fd934",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "",
         "port": "1883",
         "clientid": "",
         "autoConnect": true,
@@ -2022,7 +2098,7 @@
         "topic": "",
         "payload": "RUN",
         "payloadType": "str",
-        "x": 290,
+        "x": 310,
         "y": 380,
         "wires": [
             [
@@ -2062,7 +2138,7 @@
         "type": "debug",
         "z": "f0ce8419681cf781",
         "name": "mk4 telemetry",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -2353,7 +2429,7 @@
         "type": "function",
         "z": "f0ce8419681cf781",
         "name": "Calculate Energy Per Print",
-        "func": "// -------------------- INPUTS FROM MSG --------------------\nlet currentEnergy = msg.energyCounter;\nlet machineState = msg.machineState;\nlet jobId = msg.jobId;\n\n// Define machine states\nlet activeState = ['WORKING','PRINTING','CUTTING'];\nlet idleStates = ['IDLE', 'FINISHED'];\n// ---------------------------------------------------------\n\nif (!flow.get('jobStarted')) flow.set('jobStarted', false);\n\nif (activeState.includes(machineState) ){\n    if (!flow.get('jobStarted')) {\n        flow.set('jobStarted', true);\n        flow.set('initialEnergy', currentEnergy);\n        flow.set('currentJobId', jobId);\n        flow.set('jobStartTime', Date.now());\n        node.warn(`Job started. Initial energy: ${currentEnergy}`);\n    } else {\n        node.warn(`Job is running. Current energy: ${currentEnergy}`);\n    }\n} else if (flow.get('jobStarted') && idleStates.includes(machineState)) {\n    let initialEnergy = flow.get('initialEnergy');\n    let currentJobId = flow.get('currentJobId');\n    let energyConsumed = currentEnergy - initialEnergy;\n    let jobStartTime = flow.get('jobStartTime');\n    let jobEndTime = Date.now();\n\n    let jobResult = {\n        jobId: currentJobId,\n        energyConsumed: energyConsumed,\n        jobDuration: (jobEndTime - jobStartTime) / 1000,\n    };\n\n    flow.set('jobStarted', false);\n    flow.set('initialEnergy', null);\n    flow.set('currentJobId', null);\n    flow.set('jobStartTime', null);\n\n    node.warn(`Job completed. Final energy: ${currentEnergy}, Energy consumed: ${energyConsumed}, Duration: ${jobResult.jobDuration} seconds`);\n    node.send({ payload: jobResult });\n} else {\n    node.warn(`No active job. Current state: ${machineState}, Current energy: ${currentEnergy}`);\n}\n\nreturn null;\n",
+        "func": "// -------------------- INPUTS FROM MSG --------------------\nlet currentEnergy = msg.energyCounter;\nlet machineState = msg.machineState;\nlet jobId = msg.jobId;\n\n// Define machine states\nlet activeState = ['WORKING','PRINTING','CUTTING'];\nlet idleStates = ['IDLE', 'FINISHED'];\n// ---------------------------------------------------------\n\nif (!flow.get('jobStarted')) flow.set('jobStarted', false);\n\nfunction generateRandomId(length) {\n    let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';\n    let result = '';\n    for (let i = 0; i < length; i++) {\n        result += chars.charAt(Math.floor(Math.random() * chars.length));\n    }\n    return result;\n}\n\nif (activeState.includes(machineState)) {\n    if (!flow.get('jobStarted')) {\n        if (!jobId || jobId.trim() === '') {\n            jobId = generateRandomId(5);   // Assign random ID if missing/empty\n        }\n        flow.set('jobStarted', true);\n        flow.set('initialEnergy', currentEnergy);\n        flow.set('currentJobId', jobId);\n        flow.set('jobStartTime', Date.now());\n        node.warn(`Job started. JobId: ${jobId}, Initial energy: ${currentEnergy}`);\n    } else {\n        node.warn(`Job is running. Current energy: ${currentEnergy}`);\n    }\n} else if (flow.get('jobStarted') && idleStates.includes(machineState)) {\n    let initialEnergy = flow.get('initialEnergy');\n    let currentJobId = flow.get('currentJobId');\n    let energyConsumed = currentEnergy - initialEnergy;\n    let jobStartTime = flow.get('jobStartTime');\n    let jobEndTime = Date.now();\n\n    let jobResult = {\n        jobId: currentJobId,\n        energyConsumed: energyConsumed,\n        jobDuration: (jobEndTime - jobStartTime) / 1000,\n    };\n\n    flow.set('jobStarted', false);\n    flow.set('initialEnergy', null);\n    flow.set('currentJobId', null);\n    flow.set('jobStartTime', null);\n\n    node.warn(`Job completed. JobId: ${currentJobId}, Final energy: ${currentEnergy}, Energy consumed: ${energyConsumed}, Duration: ${jobResult.jobDuration} seconds`);\n    node.send({ payload: jobResult });\n} else {\n    node.warn(`No active job. Current state: ${machineState}, Current energy: ${currentEnergy}`);\n}\n\nreturn null;\n",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -3068,5 +3144,272 @@
         "x": 1090,
         "y": 160,
         "wires": []
+    },
+    {
+        "id": "93863b41bcce4d53",
+        "type": "websocket in",
+        "z": "f0d7e410e85e24c9",
+        "name": "olos",
+        "server": "0525d302e5e4421b",
+        "client": "",
+        "x": 50,
+        "y": 400,
+        "wires": [
+            [
+                "9f1091d29a23dcc6"
+            ]
+        ]
+    },
+    {
+        "id": "aa091f46e6deb5b5",
+        "type": "debug",
+        "z": "f0d7e410e85e24c9",
+        "name": "debug 15",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 860,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "9f1091d29a23dcc6",
+        "type": "delay",
+        "z": "f0d7e410e85e24c9",
+        "name": "",
+        "pauseType": "rate",
+        "timeout": "1",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": true,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 230,
+        "y": 400,
+        "wires": [
+            [
+                "c0bf872fa15c3694"
+            ]
+        ]
+    },
+    {
+        "id": "c0bf872fa15c3694",
+        "type": "function",
+        "z": "f0d7e410e85e24c9",
+        "name": "Store Printer Data",
+        "func": "flow.set('millData', msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 420,
+        "wires": [
+            [
+                "aa091f46e6deb5b5",
+                "9498e8ff3cb6a582"
+            ]
+        ]
+    },
+    {
+        "id": "9498e8ff3cb6a582",
+        "type": "function",
+        "z": "f0d7e410e85e24c9",
+        "name": "Inpu require variables",
+        "func": "let milldata = flow.get('millData');\n\n// parse if it's stored as a string\nif (typeof milldata === \"string\") {\n    milldata = JSON.parse(milldata);\n}\n\nlet required_data = {\n    energyCounter: flow.get('currentEnergy'),\n    machineState: milldata.state,   // now this should work ✅\n    //jobId: flow.get('printerData').job.id,\n};\n\nmsg = required_data;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 440,
+        "y": 300,
+        "wires": [
+            [
+                "e73f6a40a914b912",
+                "f1a556017fac7927"
+            ]
+        ]
+    },
+    {
+        "id": "f1a556017fac7927",
+        "type": "function",
+        "z": "f0d7e410e85e24c9",
+        "name": "Calculate Energy Per Print",
+        "func": "// -------------------- INPUTS FROM MSG --------------------\nlet currentEnergy = msg.energyCounter;\nlet machineState = msg.machineState;\nlet jobId = msg.jobId;\n\n// Define machine states\nlet activeState = ['WORKING', 'PRINTING', 'CUTTING', 'Run', 'Alarm'];\nlet idleStates = ['IDLE', 'FINISHED'];\n// ---------------------------------------------------------\n\nif (!flow.get('jobStarted')) flow.set('jobStarted', false);\n\n// Helper: generate random 5-char ID\nfunction generateJobId() {\n    return Math.random().toString(36).substr(2, 5).toUpperCase();\n}\n\nif (activeState.includes(machineState)) {\n    if (!flow.get('jobStarted')) {\n        if (!jobId) {\n            jobId = generateJobId();\n        }\n\n        flow.set('jobStarted', true);\n        flow.set('initialEnergy', currentEnergy);\n        flow.set('currentJobId', jobId);\n        flow.set('jobStartTime', Date.now());\n        node.warn(`Job started. JobId: ${jobId}, Initial energy: ${currentEnergy}`);\n    } else {\n        node.warn(`Job is running. Current energy: ${currentEnergy}`);\n    }\n} else if (flow.get('jobStarted') && idleStates.includes(machineState)) {\n    let initialEnergy = flow.get('initialEnergy');\n    let currentJobId = flow.get('currentJobId');\n    let energyConsumed = currentEnergy - initialEnergy;\n    let jobStartTime = flow.get('jobStartTime');\n    let jobEndTime = Date.now();\n\n    let jobResult = {\n        jobId: currentJobId,\n        energyConsumed: energyConsumed,\n        jobDuration: (jobEndTime - jobStartTime) / 1000,\n    };\n\n    flow.set('jobStarted', false);\n    flow.set('initialEnergy', null);\n    flow.set('currentJobId', null);\n    flow.set('jobStartTime', null);\n\n    node.warn(`Job completed. JobId: ${currentJobId}, Final energy: ${currentEnergy}, Energy consumed: ${energyConsumed}, Duration: ${jobResult.jobDuration} seconds`);\n    node.send({ payload: jobResult });\n} else {\n    node.warn(`No active job. Current state: ${machineState}, Current energy: ${currentEnergy}`);\n}\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 710,
+        "y": 300,
+        "wires": [
+            [
+                "e5e78e1332a196b7",
+                "f5ceacaa459b47be"
+            ]
+        ]
+    },
+    {
+        "id": "e5e78e1332a196b7",
+        "type": "debug",
+        "z": "f0d7e410e85e24c9",
+        "name": "Energy Per Print",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "f5ceacaa459b47be",
+        "type": "function",
+        "z": "f0d7e410e85e24c9",
+        "name": "structure job for influx",
+        "func": "msg.payload = [\n    {\n        measurement: \"jobs\",\n        fields: msg.payload,\n        tags: {\n            device: \"ols\",\n            brand: \"ols\",\n            type: \"mill\"\n        },\n    }\n];\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1010,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e73f6a40a914b912",
+        "type": "debug",
+        "z": "f0d7e410e85e24c9",
+        "name": "debug 17",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 640,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "6c8d66cdc93bf18a",
+        "type": "function",
+        "z": "f0d7e410e85e24c9",
+        "name": "structure for influx",
+        "func": "msg.payload = [\n    {\n        measurement: \"energy_sensor\",\n        fields: msg.payload,\n        tags: {\n            brand:\"shelly\",\n            device: \" SPPS-04\"\n        },\n    }\n];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 140,
+        "wires": [
+            [
+                "6e71846c8209f5e5"
+            ]
+        ]
+    },
+    {
+        "id": "6e71846c8209f5e5",
+        "type": "influxdb batch",
+        "z": "f0d7e410e85e24c9",
+        "influxdb": "a0bedc1d1fa7092d",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "microfactory",
+        "bucket": "microfactory-jupiter-DS",
+        "x": 800,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "60d5d5aec2648cce",
+        "type": "debug",
+        "z": "f0d7e410e85e24c9",
+        "name": "debug 18",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 780,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "7b779f99aea948a6",
+        "type": "function",
+        "z": "f0d7e410e85e24c9",
+        "name": "store current energy",
+        "func": "flow.set('currentEnergy', msg.payload.aenergy.total);\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "605d844458887dbd",
+        "type": "mqtt in",
+        "z": "f0d7e410e85e24c9",
+        "name": "SPPS-06 Shelly Data",
+        "topic": "SPPS-06/status/switch:0",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "af889725daaa1ec0",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 180,
+        "y": 100,
+        "wires": [
+            [
+                "6c8d66cdc93bf18a",
+                "7b779f99aea948a6",
+                "60d5d5aec2648cce"
+            ]
+        ]
     }
 ]
